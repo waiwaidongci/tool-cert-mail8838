@@ -24,6 +24,18 @@ def schedule(item):
             'next_report_day': item.params.get(SPEC['schedule_date_param']) if item.enabled else None}
 
 
+def publication(item):
+    return {'run_id': item.run_id, 'dataset_id': item.dataset_id, 'report_day': item.report_day,
+            'result': item.result, 'published_at': iso(item.published_at)}
+
+
+def progress(item):
+    if item is None:
+        return None
+    return {'attempt': item.attempt, 'lines_done': item.cursor, 'lines_total': item.total,
+            'updated_at': iso(item.updated_at)}
+
+
 def delivery(item):
     return {'id': item.id, 'run_id': item.run_id, 'recipient': item.recipient,
             'state': item.state, 'detail': item.detail, 'created_at': iso(item.created_at)}

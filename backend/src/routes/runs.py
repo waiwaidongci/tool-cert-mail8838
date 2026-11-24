@@ -8,7 +8,7 @@ from src.constants.enums import Review, Role, Status
 from src.controllers.auth import allow, current
 from src.domain.spec import SPEC
 from src.models.identity import User
-from src.models.jobs import Run
+from src.models.jobs import Run, RunProgress
 from src.models.source import Dataset
 from src.schemas.requests import ReviewRequest, RunRequest
 from src.services.audit import record
@@ -47,7 +47,8 @@ def create(body: RunRequest, db: Session = Depends(connection),
 
 @router.get('/{run_id}')
 def detail(run_id: int, db: Session = Depends(connection), actor: User = Depends(current)):
-    return views.run(require_job(db, run_id), detail=True)
+    item = require_job(db, run_id)
+    return {**views.run(item, detail=True), 'progress': views.progress(db.get(RunProgress, run_id))}
 
 
 @router.get('/{run_id}/export')

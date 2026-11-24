@@ -16,9 +16,14 @@ export async function results(route, refresh) {
   const source = datasets.find(item => item.id === job.dataset_id);
   const message = feedback();
   const finished = item => item.status === 'complete' || item.status === 'failed';
+  const progressCopy = item => {
+    const done = item.progress;
+    return done && done.lines_total ? `已续算 ${done.lines_done}/${done.lines_total} 条产线，算齐后一次性发布班报。`
+      : '后台正在计算，算齐全部产线后一次性发布班报。';
+  };
   if (!finished(job)) {
     const original = location.hash;
-    const status = el('p',{role:'status'},'后台正在计算，完成后会自动展示。');
+    const status = el('p',{role:'status'},progressCopy(job));
     poll(()=>workspace.getRun(id),finished,()=>location.hash===original)
       .then(result=>{if (result && status.isConnected && location.hash===original) refresh();
         else if(status.isConnected) status.textContent='仍在执行，请点击刷新检查。';})
@@ -33,7 +38,8 @@ export async function results(route, refresh) {
   const result = job.result;
   const analysis = result ? el('section',{class:'analysis','data-testid':'analysis-complete'},
     el('div',{class:'result-head'},p(job.name,'eyeline'),h(2,result.headline),p(result.note,'intro-copy'),
-      el('div',{class:'actions'},pill(STATUS[job.status],job.status),download,message)),
+      el('div',{class:'actions'},pill(STATUS[job.status],job.status),download,
+        result.lines?.length && link('打开停线班报','#lines',{class:'quiet'}),message)),
     metrics(result.metrics),
     result.charts.map(plot),
     (result.sections || []).map(item=>panel(item.title,p(item.text))),

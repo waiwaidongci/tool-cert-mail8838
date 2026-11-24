@@ -1,6 +1,9 @@
 DEMO_DAY = '2026-11-21'
 INSTRUMENT = '器具台账'
 CERTIFICATE = '校准证书'
+LINE = '产线'
+PLAN = '检验方案'
+PLAN_ITEM = '方案器具'
 ACTIVE = '在用'
 INACTIVE = '停用'
 
@@ -19,6 +22,7 @@ SPEC = {
         '同一器具有多张历史证书，手工筛选时可能引用旧证或将后续签发的证书算入历史班报。',
         '班组难以从单一到期总数判断哪台器具该停用、送校或补档。',
         '证书登记缺口常在班报转发后才被发现。',
+        '产线方案共用器具，单看器具到期无法判断哪一组同时缺失会让产线无方案可用。',
     ],
     'steps': [
         '11 月 21 日 07:30，计量员导入《澄岭厂器具台账及校准证书.csv》，其中有 6 台在用器具及 1 台停用器具。',
@@ -28,12 +32,18 @@ SPEC = {
         '计量员联系终检核对 QC-106 的证书，11 月 22 日签发的记录留待下一报告日采纳。',
         '主管确认 5/6 台有证书记录，配置站内定时分发。',
         '将覆盖门槛提高到 100% 试跑，班报保留逐台处置清单，定时分发暂停。',
+        '按报告日逐线列出最小停线组合，包装线确认无可用方案后记为已停线。',
     ],
     'methodology': [
         '在用范围取导入台账。每台器具选取签发日不晚于报告日的最新证书，同日按证书编号字典序取最后一条。',
         '到期剩余天数 = 到期日减报告日。负值为已过期，0 为当日到期，其余在提醒天数内（含上限）为即将到期。',
         '覆盖率 = 截至报告日有证书的在用器具数 ÷ 在用器具总数，已过期的证书也计入覆盖率。',
         '至少有一台在用器具且实际覆盖率达到门槛时允许定时分发。每日计划推进报告日并读取最新导入批次。',
+        '方案器具全部按报告日有有效证书才算可用；只要有一台证书已过期或器具已停用，方案即不可用；'
+        '器具缺少证书或方案未登记器具时方案列入待核，不参与停线判定。',
+        '每条产线列出最小停线组合：同时缺失组合内全部器具时该产线没有可用方案，少缺失其中任一台仍至少有一套方案可用。',
+        '计算按产线分批续算并保存进度，重试不重复列出组合；全部产线算齐后才一次性更新班报，算齐前保留上份班报。',
+        '补录批次会生成新的依据，新批次班报与其数据依据在同一次发布中切换，旧任务不得覆盖较新批次的发布结果。',
     ],
     'sample_name': '澄岭厂器具台账及校准证书.csv',
     'default_dataset': '澄岭精密 11 月校准证书演练批次',
@@ -42,13 +52,13 @@ SPEC = {
     'decision': '班报处置',
     'action': '登记复核结论',
     'modes': ['确认班报', '安排换具送校', '催补证书'],
-    'pages': ['计量值班台', '器具与证书', '班报与定时计划', '到期清单', '班报复核', '班报收件箱'],
+    'pages': ['计量值班台', '器具与证书', '班报与定时计划', '到期清单', '停线班报', '班报复核', '班报收件箱'],
     'scheduled': True,
     'schedule_date_param': 'report_day',
     'fields': [
         {'key': 'record_type', 'label': '记录类型', 'type': 'select', 'required': True,
-         'options': [INSTRUMENT, CERTIFICATE]},
-        {'key': 'asset_id', 'label': '器具编号', 'type': 'string', 'required': True, 'max_length': 40},
+         'options': [INSTRUMENT, CERTIFICATE, LINE, PLAN, PLAN_ITEM]},
+        {'key': 'asset_id', 'label': '器具编号（器具、证书或方案器具填写）', 'type': 'string', 'required': False, 'max_length': 40},
         {'key': 'asset_name', 'label': '器具名称（台账填写）', 'type': 'string', 'required': False, 'max_length': 80},
         {'key': 'work_area', 'label': '作业区（台账填写）', 'type': 'string', 'required': False, 'max_length': 60},
         {'key': 'owner', 'label': '责任班组（台账填写）', 'type': 'string', 'required': False, 'max_length': 60},
@@ -57,6 +67,10 @@ SPEC = {
         {'key': 'certificate_id', 'label': '证书编号（证书填写）', 'type': 'string', 'required': False, 'max_length': 60},
         {'key': 'issued_on', 'label': '签发日（证书填写）', 'type': 'date', 'required': False},
         {'key': 'expires_on', 'label': '到期日（证书填写）', 'type': 'date', 'required': False},
+        {'key': 'line_code', 'label': '产线编号（产线或方案填写）', 'type': 'string', 'required': False, 'max_length': 40},
+        {'key': 'line_name', 'label': '产线名称（产线填写）', 'type': 'string', 'required': False, 'max_length': 80},
+        {'key': 'plan_code', 'label': '方案编号（方案或方案器具填写）', 'type': 'string', 'required': False, 'max_length': 40},
+        {'key': 'plan_name', 'label': '方案名称（方案填写）', 'type': 'string', 'required': False, 'max_length': 80},
     ],
     'params': [
         {'key': 'report_day', 'label': '报告日', 'type': 'date', 'required': True, 'default': DEMO_DAY,
@@ -67,5 +81,5 @@ SPEC = {
          'default': 80, 'min': 0, 'max': 100, 'help': '达到门槛才允许定时分发。'},
     ],
     'fixture': {'min_coverage_percent': 100},
-    'axes': '按在用器具计数，每台器具只归入一个证书状态。',
+    'axes': '在用器具按证书状态计数；产线按方案器具的证书可用性判定，最小停线组合按器具计数。',
 }

@@ -50,3 +50,29 @@ class Delivery(Base):
     state: Mapped[str] = mapped_column(String(20))
     detail: Mapped[str] = mapped_column(String(500))
     created_at: Mapped[datetime] = mapped_column(default=now)
+
+class RunProgress(Base):
+    """按产线分批续算的检查点，重试时复用且不重复列组合。"""
+    __tablename__ = 'run_progress'
+
+    run_id: Mapped[int] = mapped_column(ForeignKey('runs.id'), primary_key=True)
+    attempt: Mapped[int] = mapped_column(default=0)
+    fingerprint: Mapped[str] = mapped_column(String(64))
+    lines: Mapped[dict] = mapped_column(JSON, default=dict)
+    cursor: Mapped[int] = mapped_column(default=0)
+    total: Mapped[int] = mapped_column(default=0)
+    updated_at: Mapped[datetime] = mapped_column(default=now)
+
+class Publication(Base):
+    """一次完整发布的班报，结果与其数据批次同时落库。
+
+    当前班报取批次与运行编号最大的发布；旧批次后完成的任务无法覆盖较新的发布。
+    """
+    __tablename__ = 'publications'
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    run_id: Mapped[int] = mapped_column(ForeignKey('runs.id'), unique=True)
+    dataset_id: Mapped[int] = mapped_column(ForeignKey('datasets.id'), index=True)
+    report_day: Mapped[str] = mapped_column(String(10))
+    result: Mapped[dict] = mapped_column(JSON)
+    published_at: Mapped[datetime] = mapped_column(default=now)

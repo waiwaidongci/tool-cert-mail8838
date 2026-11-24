@@ -107,6 +107,9 @@ textarea { resize:vertical; }
 .decision { margin-top:.8rem; padding-left:.7rem; border-left:3px solid var(--accent); }
 .schedule-fields { border-top:1px solid var(--line); padding-top:.65rem; }
 .schedule-fields > :not(summary) { margin-top:.7rem; }
+.lines-grid { display:grid; gap:1.1rem; grid-template-columns:repeat(auto-fit,minmax(min(100%,420px),1fr)); }
+.pill[data-state="ok"] { border-color:oklch(52% .11 150); }
+.pill[data-state="stopped"] { border-color:oklch(58% .16 29); }
 body[data-page="results"] .main > div > .panel { margin-top:1rem; }
 .login { display:grid; grid-template-columns:1.65fr minmax(300px,1fr); min-height:100svh; }
 .login-intro { padding:clamp(1.75rem,8.7vw,10rem) clamp(1.75rem,6.9vw,7.4rem); background:var(--nav); color:var(--nav-ink); align-content:center; }
